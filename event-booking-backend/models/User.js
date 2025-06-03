@@ -9,7 +9,6 @@ const userSchema = new mongoose.Schema(
       enum: ["client", "supplier", "admin"],
       default: "client",
     },
-    password: { type: String, required: true },
     isLocked: {
       type: Boolean,
       default: false,
@@ -19,7 +18,6 @@ const userSchema = new mongoose.Schema(
       default: 0,
     },
   },
-
   { timestamps: true }
 );
 

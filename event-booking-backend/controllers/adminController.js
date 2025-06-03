@@ -48,3 +48,23 @@ exports.getAdminStats = async (req, res) => {
     res.status(500).json({ error: "Failed to load admin statistics" });
   }
 };
+
+exports.unlockSupplier = async (req, res) => {
+  try {
+    const supplier = await User.findById(req.params.id);
+
+    if (!supplier || supplier.role !== "supplier") {
+      return res.status(404).json({ message: "Supplier not found" });
+    }
+
+    supplier.isLocked = false;
+    supplier.bookingCount = 0;
+
+    await supplier.save();
+
+    res.json({ message: "Supplier has been unlocked successfully." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to unlock supplier" });
+  }
+};

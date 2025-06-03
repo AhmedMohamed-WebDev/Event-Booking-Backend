@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const jwt = require("jsonwebtoken");
 
 // Mock DB for OTPs
 const otpStore = {};
@@ -16,14 +17,24 @@ exports.sendOtp = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
   const { phone, otp } = req.body;
 
-  if (otpStore[phone] && otpStore[phone] === otp) {
+  if (otpStore[phone] && otpStore[phone] === otp.toString()) {
     let user = await User.findOne({ phone });
 
     if (!user) {
       user = await User.create({ name: "User", phone, role: "client" });
     }
 
-    const token = user.generateJWT(); // or manually sign JWT
+    // Manual JWT generation
+    const token = jwt.sign(
+      {
+        id: user._id,
+        phone: user.phone,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "30d" }
+    );
+
     return res.json({ token });
   }
 
