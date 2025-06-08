@@ -25,13 +25,28 @@ app.use(helmet());
 app.use(express.json());
 app.use(morgan("dev")); // Optional: logs each request
 
-// 🔐 Rate limiter (15 min window, 100 requests/IP)
+// Enhanced security for production
+app.use(
+  helmet({
+    contentSecurityPolicy: process.env.NODE_ENV === "production",
+    crossOriginEmbedderPolicy: process.env.NODE_ENV === "production",
+  })
+);
+
+// Configure CORS
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production" ? process.env.CORS_ORIGIN : "*",
+    credentials: true,
+  })
+);
+
+// Configure rate limiter
 app.use(
   rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000,
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   })
 );
 
@@ -49,5 +64,13 @@ app.get("/", (req, res) => res.send("✅ Event Booking API is running."));
 
 // 🔻 Global Error Handler
 app.use(errorHandler);
+
+// Production error handler
+if (process.env.NODE_ENV === "production") {
+  app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ message: "Internal server error" });
+  });
+}
 
 module.exports = app;

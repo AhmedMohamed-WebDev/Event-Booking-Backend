@@ -1,10 +1,9 @@
 require("dotenv").config();
 const http = require("http");
 const app = require("./app");
-const config = require("./config/config");
-const connectDB = require("./config/database");
 const Message = require("./models/Message");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 
 // 🌐 Create HTTP server
 const server = http.createServer(app);
@@ -13,9 +12,18 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server, {
   cors: {
-    origin: "*", // replace with frontend URL in prod
+    origin:
+      process.env.NODE_ENV === "production" ? process.env.CORS_ORIGIN : "*",
     methods: ["GET", "POST"],
+    credentials: true,
   },
+  pingTimeout: 60000,
+  pingInterval: 25000,
+});
+
+// Add error handling for socket.io
+io.engine.on("connection_error", (err) => {
+  console.error("Socket.io connection error:", err);
 });
 
 // 🔐 JWT authentication middleware for sockets
@@ -24,7 +32,7 @@ io.use((socket, next) => {
   if (!token) return next(new Error("Unauthorized"));
 
   try {
-    const decoded = jwt.verify(token, config.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Use process.env directly
     socket.user = decoded;
     next();
   } catch (err) {
@@ -67,7 +75,14 @@ io.on("connection", (socket) => {
 });
 
 // 🚀 Connect DB and start server
-connectDB().then(() => {
-  const PORT = config.PORT || 5000;
-  server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-});
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("📚 MongoDB connected");
+    const PORT = process.env.PORT || 5000;
+    server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+  })
+  .catch((err) => {
+    console.error("❌ Database connection error:", err);
+    process.exit(1);
+  });
