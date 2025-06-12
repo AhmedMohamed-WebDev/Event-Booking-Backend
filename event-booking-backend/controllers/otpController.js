@@ -6,6 +6,7 @@ const {
 } = require("../utils/phoneUtils");
 const generateOTP = require("../utils/generateOTP");
 const sendWhatsAppNotification = require("../utils/whatsapp");
+const { formatMessage } = require("../utils/messages");
 
 // Use Map for OTP storage with auto-expiry
 const otpStore = new Map();
@@ -33,20 +34,29 @@ exports.sendOtp = async (req, res) => {
     if (process.env.NODE_ENV === "production") {
       await sendWhatsAppNotification(
         standardizedPhone,
-        `Your verification code is: ${otp}. Valid for ${process.env.OTP_EXPIRY_MINUTES} minutes.`
+        "otpMessage",
+        req.headers["accept-language"]?.includes("en") ? "en" : "ar",
+        otp,
+        process.env.OTP_EXPIRY_MINUTES
       );
     } else {
       console.log(`📲 [DEV] OTP for ${standardizedPhone}: ${otp}`);
     }
 
     res.json({
-      message: "OTP sent successfully",
+      message: formatMessage(
+        "otpSent",
+        req.headers["accept-language"]?.includes("en") ? "en" : "ar"
+      ),
       phone: formatPhoneForDisplay(standardizedPhone),
       testOtp: process.env.NODE_ENV === "development" ? otp : undefined,
     });
   } catch (error) {
     console.error("Send OTP Error:", error);
-    res.status(500).json({ message: "Failed to send OTP" });
+    const lang = req.headers["accept-language"]?.includes("en") ? "en" : "ar";
+    res.status(500).json({
+      message: formatMessage("sendOtpFailed", lang),
+    });
   }
 };
 
@@ -54,17 +64,22 @@ exports.verifyOtp = async (req, res) => {
   try {
     const standardizedPhone = standardizeJordanPhone(req.body.phone);
     const { otp, name } = req.body;
+    const lang = req.headers["accept-language"]?.includes("en") ? "en" : "ar";
 
     const stored = otpStore.get(standardizedPhone);
 
     if (!stored || stored.otp !== otp) {
-      return res.status(400).json({ message: "Invalid or expired OTP" });
+      return res.status(400).json({
+        message: formatMessage("invalidOtp", lang),
+      });
     }
 
     // Check OTP expiration
     if (Date.now() - stored.timestamp > OTP_EXPIRY) {
       otpStore.delete(standardizedPhone);
-      return res.status(400).json({ message: "OTP has expired" });
+      return res.status(400).json({
+        message: formatMessage("otpExpired", lang),
+      });
     }
 
     let user = await User.findOne({ phone: standardizedPhone });
@@ -100,6 +115,9 @@ exports.verifyOtp = async (req, res) => {
     });
   } catch (error) {
     console.error("Verification Error:", error);
-    res.status(500).json({ message: "Verification failed" });
+    const lang = req.headers["accept-language"]?.includes("en") ? "en" : "ar";
+    res.status(500).json({
+      message: formatMessage("verificationFailed", lang),
+    });
   }
 };

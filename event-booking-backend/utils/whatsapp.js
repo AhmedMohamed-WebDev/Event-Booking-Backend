@@ -1,8 +1,16 @@
 // utils/whatsapp.js
 
 const axios = require("axios");
+const { formatMessage } = require("./messages");
 
-const sendWhatsAppNotification = async (phone, message) => {
+const sendWhatsAppNotification = async (
+  phone,
+  messageKey,
+  lang = "ar",
+  ...args
+) => {
+  const message = formatMessage(messageKey, lang, ...args);
+
   if (process.env.NODE_ENV !== "production") {
     console.log(`📲 [DEV] WhatsApp message to ${phone}:`, message);
     return;
