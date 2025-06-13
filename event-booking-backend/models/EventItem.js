@@ -4,8 +4,13 @@ const eventItemSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     description: String,
-    category: { type: String, required: true }, // e.g. "قاعة", "زينة", etc.
-    subcategory: { type: String }, // Optional but helps refine search
+    category: {
+      type: String,
+      required: true,
+    },
+    subcategory: {
+      type: String,
+    },
     price: { type: Number, required: true },
     location: {
       city: String,

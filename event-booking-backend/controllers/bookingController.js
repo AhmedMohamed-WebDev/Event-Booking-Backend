@@ -7,9 +7,18 @@ const sendWhatsAppNotification = require("../utils/whatsapp");
 exports.createBooking = async (req, res) => {
   try {
     const { eventItemId, eventDate, numberOfPeople } = req.body;
-
     const item = await EventItem.findById(eventItemId).populate("supplier");
-    if (!item) return res.status(404).json({ message: "Event item not found" });
+
+    if (!item) {
+      return res.status(404).json({ message: "Event item not found" });
+    }
+
+    // Check if category is contact-only
+    if (isContactOnlyCategory(item.category)) {
+      return res.status(400).json({
+        message: formatMessage("invalidBookingCategory", req.lang),
+      });
+    }
 
     // Step 1: Validate eventDate is available
     const requestedDate = new Date(eventDate).toISOString();

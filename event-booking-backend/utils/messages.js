@@ -29,6 +29,22 @@ const messages = {
     joinRequestExists: "لديك طلب انضمام قيد المراجعة بالفعل",
     joinRequestApproved: "تم قبول طلب الانضمام وإنشاء حساب المزود",
     joinRequestRejected: "تم رفض طلب الانضمام",
+
+    // Subscription
+    subscriptionCreated: "تم تفعيل الاشتراك بنجاح",
+    subscriptionFailed: "فشل في إنشاء الاشتراك",
+    subscriptionNotFound: "لم يتم العثور على اشتراك نشط",
+    subscriptionCancelled: "تم إلغاء الاشتراك بنجاح",
+    subscriptionCancelFailed: "فشل في إلغاء الاشتراك",
+    subscriptionRequired: "يجب الاشتراك لمواصلة استقبال الحجوزات",
+
+    // Contact Messages
+    contactInitiated: "تم إرسال طلب التواصل بنجاح",
+    contactFailed: "فشل في إرسال طلب التواصل",
+    invalidContactCategory: "هذه الخدمة لا تدعم التواصل المباشر",
+    contactLimitWarning: "تنبيه: اقتربت من الحد المجاني للتواصلات (%d من 50)",
+    contactLimitReached: "تنبيه: وصلت إلى الحد المجاني للتواصلات (50)",
+    supplierLocked: "هذا المزود غير متاح حالياً. يرجى المحاولة لاحقاً",
   },
   en: {
     // Auth & OTP
@@ -60,6 +76,24 @@ const messages = {
     joinRequestExists: "You already have a pending join request",
     joinRequestApproved: "Join request approved and supplier account created",
     joinRequestRejected: "Join request rejected",
+
+    // Subscription
+    subscriptionCreated: "Subscription activated successfully",
+    subscriptionFailed: "Failed to create subscription",
+    subscriptionNotFound: "No active subscription found",
+    subscriptionCancelled: "Subscription cancelled successfully",
+    subscriptionCancelFailed: "Failed to cancel subscription",
+    subscriptionRequired:
+      "Subscription required to continue receiving bookings",
+
+    // Contact Messages
+    contactInitiated: "Contact request sent successfully",
+    contactFailed: "Failed to send contact request",
+    invalidContactCategory: "This service doesn't support direct contact",
+    contactLimitWarning: "Warning: Approaching free contact limit (%d of 50)",
+    contactLimitReached: "Warning: Free contact limit reached (50)",
+    supplierLocked:
+      "This supplier is currently unavailable. Please try again later",
   },
 };
 

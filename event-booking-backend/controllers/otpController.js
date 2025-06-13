@@ -17,8 +17,10 @@ exports.sendOtp = async (req, res) => {
   try {
     const { phone, name } = req.body;
     const standardizedPhone = standardizeJordanPhone(phone);
-    const otp =
-      process.env.NODE_ENV === "development" ? "123456" : generateOTP(6);
+    const lang = req.headers["accept-language"]?.includes("en") ? "en" : "ar";
+
+    // Generate real OTP even in development
+    const otp = generateOTP(6);
 
     // Store OTP with expiration
     otpStore.set(standardizedPhone, {
@@ -30,26 +32,15 @@ exports.sendOtp = async (req, res) => {
     // Auto-delete expired OTP
     setTimeout(() => otpStore.delete(standardizedPhone), OTP_EXPIRY);
 
-    // Send OTP via WhatsApp in production
-    if (process.env.NODE_ENV === "production") {
-      await sendWhatsAppNotification(
-        standardizedPhone,
-        "otpMessage",
-        req.headers["accept-language"]?.includes("en") ? "en" : "ar",
-        otp,
-        process.env.OTP_EXPIRY_MINUTES
-      );
-    } else {
-      console.log(`📲 [DEV] OTP for ${standardizedPhone}: ${otp}`);
-    }
+    // Log OTP in console for development
+    console.log(`📲 OTP for ${standardizedPhone}: ${otp}`);
 
+    // Return response with OTP (for now)
     res.json({
-      message: formatMessage(
-        "otpSent",
-        req.headers["accept-language"]?.includes("en") ? "en" : "ar"
-      ),
+      message: formatMessage("otpSent", lang),
       phone: formatPhoneForDisplay(standardizedPhone),
-      testOtp: process.env.NODE_ENV === "development" ? otp : undefined,
+      otp: otp, // Always include OTP until WhatsApp is integrated
+      expiresIn: parseInt(process.env.OTP_EXPIRY_MINUTES) || 5,
     });
   } catch (error) {
     console.error("Send OTP Error:", error);
