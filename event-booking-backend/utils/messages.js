@@ -45,6 +45,9 @@ const messages = {
     contactLimitWarning: "تنبيه: اقتربت من الحد المجاني للتواصلات (%d من 50)",
     contactLimitReached: "تنبيه: وصلت إلى الحد المجاني للتواصلات (50)",
     supplierLocked: "هذا المزود غير متاح حالياً. يرجى المحاولة لاحقاً",
+    contactMessageSent: "تم إرسال رسالتك بنجاح",
+    contactMessageFailed: "فشل في إرسال الرسالة",
+    getMessagesFailed: "فشل في استرجاع الرسائل",
   },
   en: {
     // Auth & OTP
@@ -94,6 +97,9 @@ const messages = {
     contactLimitReached: "Warning: Free contact limit reached (50)",
     supplierLocked:
       "This supplier is currently unavailable. Please try again later",
+    contactMessageSent: "Message sent successfully",
+    contactMessageFailed: "Failed to send message",
+    getMessagesFailed: "Failed to retrieve messages",
   },
 };
 

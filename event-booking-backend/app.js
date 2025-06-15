@@ -18,6 +18,7 @@ const joinRoutes = require("./routes/joinRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const subscriptionRoutes = require("./routes/subscriptionRoutes");
 const contactRoutes = require("./routes/contactRoutes");
+const contactMessageRoutes = require("./routes/contactMessageRoutes");
 
 const app = express();
 
@@ -61,7 +62,7 @@ app.use("/api/supplier", supplierRoutes);
 app.use("/api/join", joinRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
-app.use("/api/contacts", contactRoutes);
+app.use("/api/contact", contactMessageRoutes); // This matches your frontend service
 
 // 🏁 Root test
 app.get("/", (req, res) => res.send("✅ Event Booking API is running."));
