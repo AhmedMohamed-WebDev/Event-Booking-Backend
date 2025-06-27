@@ -21,54 +21,21 @@ const io = new Server(server, {
   pingInterval: 25000,
 });
 
+// Make socket.io instance available to the app
+app.set("io", io);
+
 // Add error handling for socket.io
 io.engine.on("connection_error", (err) => {
   console.error("Socket.io connection error:", err);
 });
-//////////////////////////////////
-// Create chat namespace
-const chatNamespace = io.of("/chat");
 
-// 🔐 JWT authentication middleware for sockets
-chatNamespace.use((socket, next) => {
-  const token = socket.handshake.auth?.token;
-  if (!token) return next(new Error("Unauthorized"));
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.user = decoded;
-    next();
-  } catch (err) {
-    next(new Error("Invalid token"));
-  }
-});
-
-// 🎯 Real-time chat logic
-chatNamespace.on("connection", (socket) => {
-  console.log("✅ Socket connected to chat namespace:", socket.user?.id);
-
-  // Join personal room
-  socket.on("join", (userId) => {
-    socket.join(userId);
-    console.log(`User ${userId} joined their room`);
-  });
-
-  // Handle message sending
-  socket.on("sendMessage", async ({ to, text }) => {
-    // ...existing message handling code...
-  });
-
-  socket.on("disconnect", () => {
-    console.log("🔌 User disconnected from chat namespace");
-  });
-});
 // 🔐 JWT authentication middleware for sockets
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error("Unauthorized"));
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Use process.env directly
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.user = decoded;
     next();
   } catch (err) {
@@ -86,7 +53,7 @@ io.on("connection", (socket) => {
     console.log(`User ${userId} joined their room`);
   });
 
-  // Handle message sending
+  // Handle message sending (for direct socket messages)
   socket.on("sendMessage", async ({ to, text }) => {
     const from = socket.user?.id;
 

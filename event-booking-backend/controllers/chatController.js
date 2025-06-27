@@ -7,7 +7,17 @@ exports.sendMessage = async (req, res) => {
 
     const message = await Message.create({ from, to, text });
 
-    // Emit to socket if needed (handled in socket.io logic)
+    // Emit to socket for real-time delivery
+    const io = req.app.get("io"); // Get socket.io instance from app
+    if (io) {
+      // Emit to recipient
+      io.to(to).emit("receiveMessage", message);
+
+      // Emit to sender (optional confirmation)
+      io.to(from).emit("messageSent", message);
+
+      console.log(`Message emitted via socket: ${message._id}`);
+    }
 
     res.status(201).json(message);
   } catch (err) {

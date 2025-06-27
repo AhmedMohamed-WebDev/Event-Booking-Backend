@@ -49,6 +49,23 @@ const messages = {
       "تم الوصول للحد المجاني للاتصالات (50). تم إيقاف الحساب مؤقتًا. يرجى الاشتراك لمواصلة العمل.",
     subscriptionRequired:
       "يجب الاشتراك لمواصلة استقبال الاتصالات. الحد المجاني هو 50 اتصال.",
+
+    // Contact Requests
+    contactRequestSent: "تم إرسال طلب التواصل بنجاح",
+    contactRequestFailed: "فشل في إرسال طلب التواصل",
+    contactRequestNotFound: "لم يتم العثور على طلب التواصل",
+    contactRequestStatusUpdated: "تم تحديث حالة طلب التواصل",
+    updateContactRequestStatusFailed: "فشل في تحديث حالة طلب التواصل",
+    getContactRequestsFailed: "فشل في جلب طلبات التواصل",
+    getContactLimitInfoFailed: "فشل في جلب معلومات حد التواصل",
+    supplierNotFound: "لم يتم العثور على المزود",
+    eventItemNotFound: "لم يتم العثور على الخدمة",
+    invalidContactCategory: "هذه الخدمة لا تتطلب طلب تواصل",
+    supplierLocked: "هذا المزود متوقف مؤقتاً بسبب الوصول للحد المجاني",
+    unauthorized: "غير مصرح لك بتنفيذ هذا الإجراء",
+    contactRequestAccepted:
+      "تم قبول طلب التواصل من %s لخدمة %s. يمكنك الآن التواصل مباشرة مع العميل.",
+    contactRequestRejected: "تم رفض طلب التواصل من %s لخدمة %s.",
   },
   en: {
     // Auth & OTP
@@ -102,6 +119,24 @@ const messages = {
       "Free contact limit reached (50). Account temporarily suspended. Please subscribe to continue.",
     subscriptionRequired:
       "Subscription required to continue receiving contacts. Free limit is 50 contacts.",
+
+    // Contact Requests
+    contactRequestSent: "Contact request sent successfully",
+    contactRequestFailed: "Failed to send contact request",
+    contactRequestNotFound: "Contact request not found",
+    contactRequestStatusUpdated: "Contact request status updated",
+    updateContactRequestStatusFailed: "Failed to update contact request status",
+    getContactRequestsFailed: "Failed to get contact requests",
+    getContactLimitInfoFailed: "Failed to get contact limit information",
+    supplierNotFound: "Supplier not found",
+    eventItemNotFound: "Event item not found",
+    invalidContactCategory: "This service does not require a contact request",
+    supplierLocked:
+      "This supplier is temporarily locked due to reaching the free limit",
+    unauthorized: "Unauthorized to perform this action",
+    contactRequestAccepted:
+      "Contact request accepted from %s for service %s. You can now contact the client directly.",
+    contactRequestRejected: "Contact request rejected from %s for service %s.",
   },
 };
 
