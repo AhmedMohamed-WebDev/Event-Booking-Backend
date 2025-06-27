@@ -5,6 +5,7 @@ const rateLimit = require("express-rate-limit");
 const morgan = require("morgan");
 const dotenv = require("dotenv");
 const errorHandler = require("./middleware/errorHandler");
+require("./utils/cronJobs");
 
 // Load environment variables
 dotenv.config();
@@ -61,8 +62,9 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/supplier", supplierRoutes);
 app.use("/api/join", joinRoutes);
 app.use("/api/chat", chatRoutes);
-app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/subscription", subscriptionRoutes); // Note: singular to match frontend
 app.use("/api/contact", contactMessageRoutes); // This matches your frontend service
+app.use("/api/contact-request", contactRoutes); // Add contact request routes for suppliers
 
 // 🏁 Root test
 app.get("/", (req, res) => res.send("✅ Event Booking API is running."));

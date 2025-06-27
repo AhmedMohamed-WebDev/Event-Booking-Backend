@@ -38,6 +38,13 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    lockReason: String,
+    lockExpiryDate: Date,
+    language: {
+      type: String,
+      enum: ["ar", "en"],
+      default: "ar",
+    },
   },
   { timestamps: true }
 );

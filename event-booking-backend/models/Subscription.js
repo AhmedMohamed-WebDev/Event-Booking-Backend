@@ -12,19 +12,22 @@ const subscriptionSchema = new mongoose.Schema(
       enum: ["basic", "premium"],
       default: "basic",
     },
+    status: {
+      type: String,
+      enum: ["active", "expired", "cancelled"],
+      default: "active",
+    },
     startDate: {
       type: Date,
       required: true,
-      default: Date.now,
     },
     endDate: {
       type: Date,
       required: true,
     },
-    status: {
-      type: String,
-      enum: ["active", "expired", "cancelled"],
-      default: "active",
+    autoRenew: {
+      type: Boolean,
+      default: false,
     },
     paymentId: String,
     amount: Number,

@@ -9,25 +9,27 @@ const {
   FREE_CONTACT_LIMIT,
 } = require("../utils/subscription");
 const { formatMessage } = require("../utils/messages");
+const sendWhatsAppNotification = require("../utils/whatsapp");
 
 exports.initiateContact = async (req, res) => {
   try {
     const { eventItemId } = req.body;
     const clientId = req.user.id;
+    const lang = req.headers["accept-language"]?.includes("en") ? "en" : "ar";
 
     const eventItem = await EventItem.findById(eventItemId).populate(
       "supplier"
     );
     if (!eventItem) {
       return res.status(404).json({
-        message: formatMessage("eventItemNotFound", req.lang),
+        message: formatMessage("eventItemNotFound", lang),
       });
     }
 
     // Verify this is a contact-only category
     if (!isContactOnlyCategory(eventItem.category)) {
       return res.status(400).json({
-        message: formatMessage("invalidContactCategory", req.lang),
+        message: formatMessage("invalidContactCategory", lang),
       });
     }
 
@@ -36,7 +38,7 @@ exports.initiateContact = async (req, res) => {
     // Check if supplier is locked
     if (supplier.isLocked) {
       return res.status(403).json({
-        message: formatMessage("supplierLocked", req.lang),
+        message: formatMessage("supplierLocked", lang),
       });
     }
 
@@ -50,30 +52,44 @@ exports.initiateContact = async (req, res) => {
     // Update supplier contact count
     supplier.contactCount += 1;
 
-    // Check warning threshold
+    // Check warning threshold and send notification
     if (shouldWarnSupplier(supplier.contactCount)) {
-      // Send notification (implement your notification system)
-      console.log(
-        `Warning: Supplier ${supplier._id} reached ${supplier.contactCount} contacts`
+      const remainingContacts = FREE_CONTACT_LIMIT - supplier.contactCount;
+      await sendWhatsAppNotification(
+        supplier.phone,
+        formatMessage(
+          "contactLimitWarning",
+          supplier.language || "ar",
+          remainingContacts
+        )
       );
     }
 
     // Check lock threshold
     if (shouldLockSupplier(supplier.contactCount)) {
       supplier.isLocked = true;
+      supplier.lockReason = "Contact limit reached";
+
+      // Send final notification
+      await sendWhatsAppNotification(
+        supplier.phone,
+        formatMessage("contactLimitReached", supplier.language || "ar")
+      );
     }
 
     await supplier.save();
 
     res.json({
-      message: formatMessage("contactInitiated", req.lang),
+      message: formatMessage("contactInitiated", lang),
       supplierPhone: supplier.phone,
       contact,
+      remainingContacts: FREE_CONTACT_LIMIT - supplier.contactCount,
     });
   } catch (error) {
     console.error("Contact Error:", error);
+    const lang = req.headers["accept-language"]?.includes("en") ? "en" : "ar";
     res.status(500).json({
-      message: formatMessage("contactFailed", req.lang),
+      message: formatMessage("contactFailed", lang),
     });
   }
 };

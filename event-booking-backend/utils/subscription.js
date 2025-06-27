@@ -21,6 +21,22 @@ function shouldLockSupplier(contactCount) {
   return contactCount >= FREE_CONTACT_LIMIT;
 }
 
+// Add new constants
+const SUBSCRIPTION_PLANS = {
+  BASIC: {
+    name: 'basic',
+    contactLimit: FREE_CONTACT_LIMIT,
+    duration: 30, // days
+    price: 0
+  },
+  PREMIUM: {
+    name: 'premium',
+    contactLimit: 100,
+    duration: 30,
+    price: 199
+  }
+};
+
 module.exports = {
   CONTACT_ONLY_CATEGORIES,
   FREE_CONTACT_LIMIT,
@@ -28,4 +44,5 @@ module.exports = {
   isContactOnlyCategory,
   shouldWarnSupplier,
   shouldLockSupplier,
+  SUBSCRIPTION_PLANS
 };

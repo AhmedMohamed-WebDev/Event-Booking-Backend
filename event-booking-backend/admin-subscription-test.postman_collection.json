@@ -1,0 +1,240 @@
+{
+  "info": {
+    "_postman_id": "admin-subscription-test-collection",
+    "name": "Admin Subscription Management Test",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Admin Login (OTP)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"962790000000\",\n  \"name\": \"Admin User\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/auth/send-otp",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "auth", "send-otp"]
+        }
+      }
+    },
+    {
+      "name": "Admin Verify OTP (Get Token)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"962790000000\",\n  \"otp\": \"{{admin_otp}}\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/auth/verify-otp",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "auth", "verify-otp"]
+        }
+      }
+    },
+    {
+      "name": "Get Admin Stats",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:5000/api/admin/stats",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "admin", "stats"]
+        }
+      }
+    },
+    {
+      "name": "Get All Subscriptions",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:5000/api/admin/subscriptions?page=1&limit=20",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "admin", "subscriptions"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "20" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Subscriptions by Status",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:5000/api/admin/subscriptions?status=active&plan=premium",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "admin", "subscriptions"],
+          "query": [
+            { "key": "status", "value": "active" },
+            { "key": "plan", "value": "premium" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Subscription Stats",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:5000/api/admin/subscriptions/stats",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "admin", "subscriptions", "stats"]
+        }
+      }
+    },
+    {
+      "name": "Get Subscription Details",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:5000/api/admin/subscriptions/{{subscription_id}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "admin", "subscriptions", "{{subscription_id}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Subscription",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"plan\": \"premium\",\n  \"autoRenew\": true\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/admin/subscriptions/{{subscription_id}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "admin", "subscriptions", "{{subscription_id}}"]
+        }
+      }
+    },
+    {
+      "name": "Extend Subscription",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"days\": 30,\n  \"reason\": \"Customer requested extension\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/admin/subscriptions/{{subscription_id}}/extend",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": [
+            "api",
+            "admin",
+            "subscriptions",
+            "{{subscription_id}}",
+            "extend"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Cancel Subscription",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"reason\": \"Payment issues\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/admin/subscriptions/{{subscription_id}}/cancel",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": [
+            "api",
+            "admin",
+            "subscriptions",
+            "{{subscription_id}}",
+            "cancel"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Suppliers Needing Attention",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:5000/api/admin/suppliers/attention",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "admin", "suppliers", "attention"]
+        }
+      }
+    },
+    {
+      "name": "Unlock Supplier",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:5000/api/admin/unlock/{{supplier_id}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "admin", "unlock", "{{supplier_id}}"]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,165 @@
+{
+  "info": {
+    "_postman_id": "event-booking-test-collection-v2",
+    "name": "Event Booking Subscription Test V2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Client Register/Login (OTP)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"962790000001\",\n  \"name\": \"Test Client\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/auth/send-otp",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "auth", "send-otp"]
+        }
+      }
+    },
+    {
+      "name": "Client Verify OTP (Get Token)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"962790000001\",\n  \"otp\": \"{{client_otp}}\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/auth/verify-otp",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "auth", "verify-otp"]
+        }
+      }
+    },
+    {
+      "name": "Supplier Register/Login (OTP)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"962790000002\",\n  \"name\": \"Test Supplier\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/auth/send-otp",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "auth", "send-otp"]
+        }
+      }
+    },
+    {
+      "name": "Supplier Verify OTP (Get Token)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"962790000002\",\n  \"otp\": \"{{supplier_otp}}\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/auth/verify-otp",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "auth", "verify-otp"]
+        }
+      }
+    },
+    {
+      "name": "Create Contact-Only Event Item (Supplier)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{supplier_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test Farm\",\n  \"category\": \"farm\",\n  \"price\": 1000,\n  \"location\": {\n    \"city\": \"Amman\",\n    \"area\": \"Abdoun\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/event-items",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "event-items"]
+        }
+      }
+    },
+    {
+      "name": "Initiate Contact (Client)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{client_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"eventItemId\": \"{{eventItemId}}\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/contact-request",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "contact-request"]
+        }
+      }
+    },
+    {
+      "name": "Subscribe as Supplier",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{supplier_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"plan\": \"basic\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/subscription",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "subscription"]
+        }
+      }
+    },
+    {
+      "name": "Initiate Contact Again (Client)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{client_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"eventItemId\": \"{{eventItemId}}\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/contact-request",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "contact-request"]
+        }
+      }
+    }
+  ]
+}

@@ -37,17 +37,18 @@ const messages = {
     subscriptionCancelled: "تم إلغاء الاشتراك بنجاح",
     subscriptionCancelFailed: "فشل في إلغاء الاشتراك",
     subscriptionRequired: "يجب الاشتراك لمواصلة استقبال الحجوزات",
+    subscriptionExpiring: "تنبيه: سينتهي اشتراكك خلال %d أيام",
+    subscriptionRenewed: "تم تجديد اشتراكك تلقائياً",
+    subscriptionLimitNear: "تنبيه: استخدمت %d%% من حد التواصل المسموح به",
+    subscriptionExpired: "انتهى اشتراكك. يرجى التجديد للاستمرار",
 
-    // Contact Messages
-    contactInitiated: "تم إرسال طلب التواصل بنجاح",
-    contactFailed: "فشل في إرسال طلب التواصل",
-    invalidContactCategory: "هذه الخدمة لا تدعم التواصل المباشر",
-    contactLimitWarning: "تنبيه: اقتربت من الحد المجاني للتواصلات (%d من 50)",
-    contactLimitReached: "تنبيه: وصلت إلى الحد المجاني للتواصلات (50)",
-    supplierLocked: "هذا المزود غير متاح حالياً. يرجى المحاولة لاحقاً",
-    contactMessageSent: "تم إرسال رسالتك بنجاح",
-    contactMessageFailed: "فشل في إرسال الرسالة",
-    getMessagesFailed: "فشل في استرجاع الرسائل",
+    // Contact Limit
+    contactLimitWarning:
+      "تنبيه: باقي لك {0} اتصال فقط قبل الوصول للحد المجاني. يرجى الاشتراك لمواصلة استقبال الاتصالات.",
+    contactLimitReached:
+      "تم الوصول للحد المجاني للاتصالات (50). تم إيقاف الحساب مؤقتًا. يرجى الاشتراك لمواصلة العمل.",
+    subscriptionRequired:
+      "يجب الاشتراك لمواصلة استقبال الاتصالات. الحد المجاني هو 50 اتصال.",
   },
   en: {
     // Auth & OTP
@@ -88,18 +89,19 @@ const messages = {
     subscriptionCancelFailed: "Failed to cancel subscription",
     subscriptionRequired:
       "Subscription required to continue receiving bookings",
+    subscriptionExpiring: "Alert: Your subscription expires in %d days",
+    subscriptionRenewed: "Your subscription has been automatically renewed",
+    subscriptionLimitNear: "Warning: You've used %d%% of your contact limit",
+    subscriptionExpired:
+      "Your subscription has expired. Please renew to continue",
 
-    // Contact Messages
-    contactInitiated: "Contact request sent successfully",
-    contactFailed: "Failed to send contact request",
-    invalidContactCategory: "This service doesn't support direct contact",
-    contactLimitWarning: "Warning: Approaching free contact limit (%d of 50)",
-    contactLimitReached: "Warning: Free contact limit reached (50)",
-    supplierLocked:
-      "This supplier is currently unavailable. Please try again later",
-    contactMessageSent: "Message sent successfully",
-    contactMessageFailed: "Failed to send message",
-    getMessagesFailed: "Failed to retrieve messages",
+    // Contact Limit
+    contactLimitWarning:
+      "Warning: You have {0} contacts remaining before reaching the free limit. Please subscribe to continue receiving contacts.",
+    contactLimitReached:
+      "Free contact limit reached (50). Account temporarily suspended. Please subscribe to continue.",
+    subscriptionRequired:
+      "Subscription required to continue receiving contacts. Free limit is 50 contacts.",
   },
 };
 

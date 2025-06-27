@@ -3,6 +3,8 @@ const EventItem = require("../models/EventItem");
 const User = require("../models/User");
 const { shouldEnforceLimit } = require("../utils/subscription");
 const sendWhatsAppNotification = require("../utils/whatsapp");
+const { formatMessage } = require("../utils/messages");
+const { isContactOnlyCategory } = require("../utils/subscription");
 
 exports.createBooking = async (req, res) => {
   try {
