@@ -24,7 +24,6 @@ const contactMessageRoutes = require("./routes/contactMessageRoutes");
 const app = express();
 
 // 💡 Middlewares
-app.use(cors());
 app.use(helmet());
 app.use(express.json());
 app.use(morgan("dev")); // Optional: logs each request
@@ -37,14 +36,35 @@ app.use(
   })
 );
 
-// Configure CORS
-app.use(
-  cors({
-    origin:
-      process.env.NODE_ENV === "production" ? process.env.CORS_ORIGIN : "*",
-    credentials: true,
-  })
-);
+// Configure CORS - Single configuration to avoid conflicts
+const corsOptions = {
+  origin:
+    process.env.NODE_ENV === "production"
+      ? process.env.CORS_ORIGIN
+        ? process.env.CORS_ORIGIN.split(",")
+        : ["https://monasabatcm.netlify.app"]
+      : "*",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "x-auth-token",
+    "Origin",
+    "Accept",
+  ],
+  optionsSuccessStatus: 200, // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  preflightContinue: false,
+};
+
+// Log CORS configuration for debugging
+console.log("🔧 CORS Configuration:", {
+  nodeEnv: process.env.NODE_ENV,
+  corsOrigin: process.env.CORS_ORIGIN,
+  allowedOrigins: corsOptions.origin,
+});
+
+app.use(cors(corsOptions));
 
 // Configure rate limiter
 app.use(
@@ -68,6 +88,20 @@ app.use("/api/contact-request", contactRoutes); // Add contact request routes fo
 
 // 🏁 Root test
 app.get("/", (req, res) => res.send("✅ Event Booking API is running."));
+
+// CORS test endpoint
+app.options("/api/cors-test", (req, res) => {
+  res.status(200).end();
+});
+
+app.get("/api/cors-test", (req, res) => {
+  res.json({
+    message: "CORS is working!",
+    origin: req.headers.origin,
+    corsOrigin: process.env.CORS_ORIGIN,
+    nodeEnv: process.env.NODE_ENV,
+  });
+});
 
 // 🔻 Global Error Handler
 app.use(errorHandler);

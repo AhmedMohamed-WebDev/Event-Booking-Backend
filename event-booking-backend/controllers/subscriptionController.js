@@ -16,20 +16,21 @@ exports.createSubscription = async (req, res) => {
     const supplier = await User.findById(req.user.id);
     const lang = req.headers["accept-language"]?.includes("en") ? "en" : "ar";
 
-    // Calculate end date (3 months from now)
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + 3);
+    // Calculate end date (30 days from now)
+    const endDate = addDays(new Date(), 30);
 
     const subscription = await Subscription.create({
       supplier: supplier._id,
       plan,
+      startDate: new Date(),
       endDate,
-      amount: plan === "premium" ? 100 : 50,
+      amount: SUBSCRIPTION_PLANS[plan.toUpperCase()]?.price || 0,
+      autoRenew: false,
     });
 
     // Unlock supplier
     supplier.isLocked = false;
-    supplier.bookingCount = 0; // Reset booking count
+    supplier.contactCount = 0; // Reset contact count
     await supplier.save();
 
     // Send notification
@@ -59,18 +60,23 @@ exports.getSubscriptionStatus = async (req, res) => {
       status: "active",
     });
 
+    const user = await User.findById(req.user.id);
+    const plan = subscription?.plan || "basic";
+    const contactLimit =
+      SUBSCRIPTION_PLANS[plan.toUpperCase()]?.contactLimit || 50;
+
     if (!subscription) {
       return res.json({
         status: "inactive",
-        contactsUsed: 0,
-        contactLimit: 50,
+        contactsUsed: user.contactCount || 0,
+        contactLimit: contactLimit,
       });
     }
 
     // Calculate stats
     const stats = {
-      isLocked: req.user.isLocked,
-      usagePercentage: (req.user.contactCount / 50) * 100,
+      isLocked: user.isLocked,
+      usagePercentage: ((user.contactCount || 0) / contactLimit) * 100,
       daysUntilExpiry: Math.ceil(
         (new Date(subscription.endDate) - new Date()) / (1000 * 60 * 60 * 24)
       ),
@@ -78,8 +84,8 @@ exports.getSubscriptionStatus = async (req, res) => {
       warningType: undefined,
     };
 
-    // Add warning logic
-    if (stats.usagePercentage > 90) {
+    // Add warning logic using the updated functions
+    if (shouldWarnSupplier(user.contactCount || 0, contactLimit)) {
       stats.hasWarning = true;
       stats.warningType = "near-limit";
     }
@@ -99,8 +105,8 @@ exports.getSubscriptionStatus = async (req, res) => {
         plan: subscription.plan,
         startDate: subscription.startDate,
         endDate: subscription.endDate,
-        contactLimit: 50,
-        contactsUsed: req.user.contactCount,
+        contactLimit: contactLimit,
+        contactsUsed: user.contactCount || 0,
       },
       stats,
     });
@@ -144,11 +150,14 @@ exports.getCurrentSubscription = async (req, res) => {
 
     const user = await User.findById(req.user.id);
     const plan = subscription?.plan || "basic";
-    const contactLimit = SUBSCRIPTION_PLANS[plan.toUpperCase()].contactLimit;
+    const contactLimit =
+      SUBSCRIPTION_PLANS[plan.toUpperCase()]?.contactLimit || 50;
 
-    // Check if should warn
-    if (shouldWarnSupplier(user.contactCount)) {
-      const usagePercent = Math.round((user.contactCount / contactLimit) * 100);
+    // Check if should warn using updated logic
+    if (shouldWarnSupplier(user.contactCount || 0, contactLimit)) {
+      const usagePercent = Math.round(
+        ((user.contactCount || 0) / contactLimit) * 100
+      );
       await sendWhatsAppNotification(
         user.phone,
         formatMessage(
@@ -159,8 +168,11 @@ exports.getCurrentSubscription = async (req, res) => {
       );
     }
 
-    // Check if should lock
-    if (shouldLockSupplier(user.contactCount) && !user.isLocked) {
+    // Check if should lock using updated logic
+    if (
+      shouldLockSupplier(user.contactCount || 0, contactLimit) &&
+      !user.isLocked
+    ) {
       user.isLocked = true;
       user.lockReason = "Contact limit reached";
       await user.save();
@@ -175,7 +187,7 @@ exports.getCurrentSubscription = async (req, res) => {
       return res.json({
         status: "inactive",
         type: "basic",
-        contactLimit: 50,
+        contactLimit: contactLimit,
         contactsUsed: user.contactCount || 0,
         startDate: null,
         expiryDate: null,
@@ -187,7 +199,7 @@ exports.getCurrentSubscription = async (req, res) => {
       _id: subscription._id,
       status: subscription.status,
       type: subscription.plan,
-      contactLimit: subscription.plan === "premium" ? 100 : 50,
+      contactLimit: contactLimit,
       contactsUsed: user.contactCount || 0,
       startDate: subscription.startDate,
       expiryDate: subscription.endDate,
@@ -209,7 +221,9 @@ exports.getSubscriptionStats = async (req, res) => {
       status: "active",
     });
 
-    const contactLimit = subscription?.plan === "premium" ? 100 : 50;
+    const plan = subscription?.plan || "basic";
+    const contactLimit =
+      SUBSCRIPTION_PLANS[plan.toUpperCase()]?.contactLimit || 50;
     const usagePercentage = ((user.contactCount || 0) / contactLimit) * 100;
     const daysUntilExpiry = subscription
       ? Math.ceil(
@@ -225,13 +239,15 @@ exports.getSubscriptionStats = async (req, res) => {
       daysUntilExpiry,
       hasWarning: false,
       warningType: undefined,
+      currentContacts: user.contactCount || 0,
+      maxContacts: contactLimit,
     };
 
-    // Set warning type
+    // Set warning type using updated logic
     if (user.isLocked) {
       stats.hasWarning = true;
       stats.warningType = "locked";
-    } else if (usagePercentage > 90) {
+    } else if (shouldWarnSupplier(user.contactCount || 0, contactLimit)) {
       stats.hasWarning = true;
       stats.warningType = "near-limit";
     } else if (daysUntilExpiry < 7) {
@@ -248,7 +264,7 @@ exports.getSubscriptionStats = async (req, res) => {
 
 exports.renewSubscription = async (req, res) => {
   try {
-    const { plan } = req.body;
+    const { planType } = req.body;
     const user = await User.findById(req.user.id);
     const currentSubscription = await Subscription.findOne({
       supplier: req.user.id,
@@ -256,16 +272,16 @@ exports.renewSubscription = async (req, res) => {
     });
 
     // Validate plan
-    if (!plan || !["basic", "premium"].includes(plan)) {
+    if (!planType || !["basic", "premium", "enterprise"].includes(planType)) {
       return res.status(400).json({
-        message: "Invalid plan. Must be 'basic' or 'premium'",
+        message: "Invalid plan. Must be 'basic', 'premium', or 'enterprise'",
       });
     }
 
     // Create new subscription with the requested plan
     const newSubscription = new Subscription({
       supplier: req.user.id,
-      plan: plan,
+      plan: planType,
       startDate: new Date(),
       endDate: addDays(new Date(), 30),
       autoRenew: currentSubscription?.autoRenew || false,
@@ -292,19 +308,27 @@ exports.renewSubscription = async (req, res) => {
       formatMessage("subscriptionRenewed", user.language || "ar")
     );
 
+    const contactLimit =
+      SUBSCRIPTION_PLANS[planType.toUpperCase()]?.contactLimit || 50;
+
     res.json({
-      _id: newSubscription._id,
-      status: newSubscription.status,
-      type: newSubscription.plan,
-      contactLimit: newSubscription.plan === "premium" ? 100 : 50,
-      contactsUsed: 0,
-      startDate: newSubscription.startDate,
-      expiryDate: newSubscription.endDate,
-      autoRenew: newSubscription.autoRenew,
+      success: true,
+      message: formatMessage("subscriptionRenewed", user.language || "ar"),
+      subscription: {
+        _id: newSubscription._id,
+        status: newSubscription.status,
+        type: newSubscription.plan,
+        contactLimit: contactLimit,
+        contactsUsed: 0,
+        startDate: newSubscription.startDate,
+        expiryDate: newSubscription.endDate,
+        autoRenew: newSubscription.autoRenew,
+      },
     });
   } catch (error) {
     console.error("Renewal error:", error);
     res.status(500).json({
+      success: false,
       message: formatMessage("subscriptionFailed", req.user.language || "ar"),
     });
   }
@@ -330,3 +354,47 @@ exports.toggleAutoRenew = async (req, res) => {
     res.status(500).json({ message: "Failed to toggle auto-renewal" });
   }
 };
+
+// New method to get available plans
+exports.getAvailablePlans = async (req, res) => {
+  try {
+    const plans = Object.values(SUBSCRIPTION_PLANS).map((plan) => ({
+      type: plan.name,
+      name: plan.name.charAt(0).toUpperCase() + plan.name.slice(1),
+      price: plan.price,
+      contactLimit: plan.contactLimit,
+      duration: plan.duration,
+      features: getPlanFeatures(plan.name),
+    }));
+
+    res.json(plans);
+  } catch (error) {
+    console.error("Get plans error:", error);
+    res.status(500).json({ message: "Failed to get available plans" });
+  }
+};
+
+function getPlanFeatures(planType) {
+  const features = {
+    basic: [
+      "50 contact requests per month",
+      "Basic support",
+      "Standard features",
+    ],
+    premium: [
+      "100 contact requests per month",
+      "Priority support",
+      "Advanced features",
+      "Analytics dashboard",
+    ],
+    enterprise: [
+      "500 contact requests per month",
+      "24/7 support",
+      "All features",
+      "Advanced analytics",
+      "Custom integrations",
+    ],
+  };
+
+  return features[planType] || features.basic;
+}
