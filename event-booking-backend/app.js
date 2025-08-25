@@ -22,6 +22,7 @@ const contactRoutes = require("./routes/contactRoutes");
 const contactMessageRoutes = require("./routes/contactMessageRoutes");
 
 const app = express();
+app.set("trust proxy", 1); // trust first proxy
 
 // 💡 Middlewares
 app.use(helmet());
