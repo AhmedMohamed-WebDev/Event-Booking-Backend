@@ -1,7 +1,10 @@
 const mongoose = require("mongoose");
 const {
   isValidJordanPhone,
+  isValidKuwaitPhone,
   standardizeJordanPhone,
+  standardizeKuwaitPhone,
+  standardizePhoneByCountry,
 } = require("../utils/phoneUtils");
 
 const userSchema = new mongoose.Schema(
@@ -16,10 +19,18 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       validate: {
-        validator: isValidJordanPhone,
+        validator: function (phone) {
+          // Check if it's a valid Jordan or Kuwait phone number
+          return isValidJordanPhone(phone) || isValidKuwaitPhone(phone);
+        },
         message: (props) =>
-          `${props.value} is not a valid Jordan phone number!`,
+          `${props.value} is not a valid Jordan or Kuwait phone number!`,
       },
+    },
+    country: {
+      type: String,
+      enum: ["jordan", "kuwait"],
+      default: "jordan",
     },
     role: {
       type: String,
@@ -53,7 +64,14 @@ const userSchema = new mongoose.Schema(
 userSchema.pre("save", function (next) {
   if (this.isModified("phone")) {
     try {
-      this.phone = standardizeJordanPhone(this.phone);
+      // Determine country based on phone number prefix
+      if (this.phone.startsWith("+965")) {
+        this.country = "kuwait";
+        this.phone = standardizeKuwaitPhone(this.phone);
+      } else {
+        this.country = "jordan";
+        this.phone = standardizePhoneByCountry(this.phone, "jordan");
+      }
     } catch (error) {
       next(error);
     }

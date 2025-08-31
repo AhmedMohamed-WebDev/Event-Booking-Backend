@@ -2,6 +2,9 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const {
   standardizeJordanPhone,
+  standardizeKuwaitPhone,
+  standardizePhoneByCountry,
+  standardizePhoneAuto,
   formatPhoneForDisplay,
 } = require("../utils/phoneUtils");
 const generateOTP = require("../utils/generateOTP");
@@ -16,7 +19,10 @@ const OTP_EXPIRY =
 exports.sendOtp = async (req, res) => {
   try {
     const { phone, name } = req.body;
-    const standardizedPhone = standardizeJordanPhone(phone);
+
+    // Automatically standardize phone number based on country code
+    const standardizedPhone = standardizePhoneAuto(phone);
+
     const lang = req.headers["accept-language"]?.includes("en") ? "en" : "ar";
 
     // Generate real OTP even in development
@@ -53,8 +59,11 @@ exports.sendOtp = async (req, res) => {
 
 exports.verifyOtp = async (req, res) => {
   try {
-    const standardizedPhone = standardizeJordanPhone(req.body.phone);
-    const { otp, name } = req.body;
+    const { phone, otp, name } = req.body;
+
+    // Automatically standardize phone number based on country code
+    const standardizedPhone = standardizePhoneAuto(phone);
+
     const lang = req.headers["accept-language"]?.includes("en") ? "en" : "ar";
 
     const stored = otpStore.get(standardizedPhone);

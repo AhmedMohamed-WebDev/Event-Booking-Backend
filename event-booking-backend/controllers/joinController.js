@@ -1,12 +1,15 @@
 const JoinRequest = require("../models/JoinRequest");
 const User = require("../models/User");
-const { standardizeJordanPhone } = require("../utils/phoneUtils");
+const {
+  standardizePhoneByCountry,
+  standardizePhoneAuto,
+} = require("../utils/phoneUtils");
 
 // Submit join request (public)
 exports.submitJoinRequest = async (req, res) => {
   try {
-    const { name, phone, serviceType, city, notes } = req.body;
-    const standardizedPhone = standardizeJordanPhone(phone);
+    const { name, phone, phoneCountry, serviceType, city, notes } = req.body;
+    const standardizedPhone = standardizePhoneAuto(phone);
 
     const existing = await JoinRequest.findOne({
       phone: standardizedPhone,
@@ -20,6 +23,9 @@ exports.submitJoinRequest = async (req, res) => {
     const request = await JoinRequest.create({
       name,
       phone: standardizedPhone,
+      country:
+        phoneCountry ||
+        (standardizedPhone.startsWith("+965") ? "kuwait" : "jordan"),
       serviceType,
       city,
       notes,
@@ -104,11 +110,15 @@ exports.approveJoinRequest = async (req, res) => {
       user = await User.create({
         name: joinRequest.name,
         phone: joinRequest.phone,
+        country: joinRequest.country || "jordan",
         role: "supplier",
       });
     } else {
       // Update existing user to supplier role
       user.role = "supplier";
+      if (joinRequest.country) {
+        user.country = joinRequest.country;
+      }
       await user.save();
     }
 
