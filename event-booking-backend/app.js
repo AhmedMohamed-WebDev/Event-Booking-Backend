@@ -2,6 +2,11 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const {
+  publicLimiter,
+  authLimiter,
+  apiLimiter,
+} = require("./middleware/rateLimiters");
 const morgan = require("morgan");
 const dotenv = require("dotenv");
 const errorHandler = require("./middleware/errorHandler");
@@ -67,25 +72,31 @@ console.log("🔧 CORS Configuration:", {
 
 app.use(cors(corsOptions));
 
-// Configure rate limiter
-app.use(
-  rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000,
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-  })
-);
+// // Configure rate limiter
+// app.use(
+//   rateLimit({
+//     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000,
+//     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+//   })
+// );
 
-// ✅ Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/event-items", eventItemRoutes);
-app.use("/api/bookings", bookingRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/supplier", supplierRoutes);
-app.use("/api/join", joinRoutes);
-app.use("/api/chat", chatRoutes);
-app.use("/api/subscription", subscriptionRoutes); // Note: singular to match frontend
-app.use("/api/contact", contactMessageRoutes); // This matches your frontend service
-app.use("/api/contact-request", contactRoutes); // Add contact request routes for suppliers
+// ✅ Routes with specific rate limiters
+// Public routes
+app.use("/", publicLimiter);
+
+// Auth routes - stricter limits
+app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/join", authLimiter, joinRoutes);
+
+// Protected API routes - more generous limits
+app.use("/api/event-items", apiLimiter, eventItemRoutes);
+app.use("/api/bookings", apiLimiter, bookingRoutes);
+app.use("/api/admin", apiLimiter, adminRoutes);
+app.use("/api/supplier", apiLimiter, supplierRoutes);
+app.use("/api/chat", apiLimiter, chatRoutes);
+app.use("/api/subscription", apiLimiter, subscriptionRoutes);
+app.use("/api/contact", apiLimiter, contactMessageRoutes);
+app.use("/api/contact-request", apiLimiter, contactRoutes);
 
 // 🏁 Root test
 app.get("/", (req, res) => res.send("✅ Event Booking API is running."));
