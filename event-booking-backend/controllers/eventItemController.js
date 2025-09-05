@@ -2,14 +2,14 @@ const EventItem = require("../models/EventItem");
 const { generateGoogleMapLinks } = require("../utils/googleMaps");
 const cloudinary = require("../utils/cloudinary");
 
-exports.createEventItem = async (req, res) => {
-  try {
-    const item = await EventItem.create({ ...req.body, supplier: req.user.id });
-    res.status(201).json(item);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+// exports.createEventItem = async (req, res) => {
+//   try {
+//     const item = await EventItem.create({ ...req.body, supplier: req.user.id });
+//     res.status(201).json(item);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 
 exports.getAllEventItems = async (req, res) => {
   try {
@@ -101,6 +101,52 @@ exports.deleteEventItem = async (req, res) => {
 //     res.status(500).json({ error: "Search failed" });
 //   }
 // };
+// exports.searchEventItems = async (req, res) => {
+//   try {
+//     const {
+//       city,
+//       area,
+//       category,
+//       date,
+//       people,
+//       subcategory, // new optional
+//       minPrice,
+//       maxPrice,
+//     } = req.query;
+
+//     const query = {};
+
+//     if (city) query["location.city"] = city;
+//     if (area) query["location.area"] = area;
+//     if (category) query.category = category;
+//     if (subcategory) query.subcategory = subcategory; // optional in future
+
+//     if (people) {
+//       const count = parseInt(people);
+//       query.minCapacity = { $lte: count };
+//       query.maxCapacity = { $gte: count };
+//     }
+
+//     if (date) {
+//       query.availableDates = { $in: [new Date(date)] };
+//     }
+
+//     if (minPrice || maxPrice) {
+//       query.price = {};
+//       if (minPrice) query.price.$gte = parseInt(minPrice);
+//       if (maxPrice) query.price.$lte = parseInt(maxPrice);
+//     }
+
+//     const results = await EventItem.find(query)
+//       .populate("supplier", "name phone")
+//       .sort({ createdAt: -1 });
+
+//     res.json(results);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Search failed" });
+//   }
+// };
 exports.searchEventItems = async (req, res) => {
   try {
     const {
@@ -109,7 +155,7 @@ exports.searchEventItems = async (req, res) => {
       category,
       date,
       people,
-      subcategory, // new optional
+      subcategory,
       minPrice,
       maxPrice,
     } = req.query;
@@ -119,7 +165,7 @@ exports.searchEventItems = async (req, res) => {
     if (city) query["location.city"] = city;
     if (area) query["location.area"] = area;
     if (category) query.category = category;
-    if (subcategory) query.subcategory = subcategory; // optional in future
+    if (subcategory) query.subcategory = subcategory;
 
     if (people) {
       const count = parseInt(people);
@@ -127,8 +173,26 @@ exports.searchEventItems = async (req, res) => {
       query.maxCapacity = { $gte: count };
     }
 
+    // Updated date availability check
     if (date) {
-      query.availableDates = { $in: [new Date(date)] };
+      const searchDate = new Date(date);
+      query.$or = [
+        // Check old availableDates array
+        { availableDates: { $in: [searchDate] } },
+        // Check new date range
+        {
+          $and: [
+            { "availability.dateRange.from": { $lte: searchDate } },
+            { "availability.dateRange.to": { $gte: searchDate } },
+            {
+              $or: [
+                { "availability.excludedDates": { $exists: false } },
+                { "availability.excludedDates": { $nin: [searchDate] } },
+              ],
+            },
+          ],
+        },
+      ];
     }
 
     if (minPrice || maxPrice) {
@@ -148,6 +212,33 @@ exports.searchEventItems = async (req, res) => {
   }
 };
 
+// Update create method to handle the new availability format
+exports.createEventItem = async (req, res) => {
+  try {
+    const itemData = { ...req.body, supplier: req.user.id };
+
+    // Ensure dates are properly formatted
+    if (itemData.availability?.dateRange) {
+      itemData.availability.dateRange.from = new Date(
+        itemData.availability.dateRange.from
+      );
+      itemData.availability.dateRange.to = new Date(
+        itemData.availability.dateRange.to
+      );
+    }
+
+    if (itemData.availability?.excludedDates) {
+      itemData.availability.excludedDates =
+        itemData.availability.excludedDates.map((date) => new Date(date));
+    }
+
+    const item = await EventItem.create(itemData);
+    res.status(201).json(item);
+  } catch (err) {
+    console.error("Error creating event item:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
 exports.subFilterEventItems = async (req, res) => {
   try {
     const { category, subcategory } = req.query;

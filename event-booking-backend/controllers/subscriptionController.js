@@ -53,7 +53,70 @@ exports.createSubscription = async (req, res) => {
   }
 };
 
-exports.getSubscriptionStatus = async (req, res) => {
+// exports.getSubscriptionStatus = async (req, res) => {
+//   try {
+//     const subscription = await Subscription.findOne({
+//       supplier: req.user.id,
+//       status: "active",
+//     });
+
+//     const user = await User.findById(req.user.id);
+//     const plan = subscription?.plan || "basic";
+//     const contactLimit =
+//       SUBSCRIPTION_PLANS[plan.toUpperCase()]?.contactLimit || 50;
+
+//     if (!subscription) {
+//       return res.json({
+//         status: "inactive",
+//         contactsUsed: user.contactCount || 0,
+//         contactLimit: contactLimit,
+//       });
+//     }
+
+//     // Calculate stats
+//     const stats = {
+//       isLocked: user.isLocked,
+//       usagePercentage: ((user.contactCount || 0) / contactLimit) * 100,
+//       daysUntilExpiry: Math.ceil(
+//         (new Date(subscription.endDate) - new Date()) / (1000 * 60 * 60 * 24)
+//       ),
+//       hasWarning: false,
+//       warningType: undefined,
+//     };
+
+//     // Add warning logic using the updated functions
+//     if (shouldWarnSupplier(user.contactCount || 0, contactLimit)) {
+//       stats.hasWarning = true;
+//       stats.warningType = "near-limit";
+//     }
+//     if (stats.daysUntilExpiry < 7) {
+//       stats.hasWarning = true;
+//       stats.warningType = "expiring";
+//     }
+//     if (stats.isLocked) {
+//       stats.hasWarning = true;
+//       stats.warningType = "locked";
+//     }
+
+//     res.json({
+//       subscription: {
+//         _id: subscription._id,
+//         status: subscription.status,
+//         plan: subscription.plan,
+//         startDate: subscription.startDate,
+//         endDate: subscription.endDate,
+//         contactLimit: contactLimit,
+//         contactsUsed: user.contactCount || 0,
+//       },
+//       stats,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: "Failed to get subscription status" });
+//   }
+// };
+
+// Remove the old versions and keep only this one
+exports.getSubscriptionStats = async (req, res) => {
   try {
     const subscription = await Subscription.findOne({
       supplier: req.user.id,
@@ -65,56 +128,70 @@ exports.getSubscriptionStatus = async (req, res) => {
     const contactLimit =
       SUBSCRIPTION_PLANS[plan.toUpperCase()]?.contactLimit || 50;
 
-    if (!subscription) {
-      return res.json({
-        status: "inactive",
-        contactsUsed: user.contactCount || 0,
-        contactLimit: contactLimit,
-      });
-    }
-
     // Calculate stats
     const stats = {
       isLocked: user.isLocked,
       usagePercentage: ((user.contactCount || 0) / contactLimit) * 100,
-      daysUntilExpiry: Math.ceil(
-        (new Date(subscription.endDate) - new Date()) / (1000 * 60 * 60 * 24)
-      ),
+      daysUntilExpiry: subscription
+        ? Math.ceil(
+            (new Date(subscription.endDate) - new Date()) /
+              (1000 * 60 * 60 * 24)
+          )
+        : 0,
       hasWarning: false,
+      warnings: [],
       warningType: undefined,
+      currentContacts: user.contactCount || 0,
+      maxContacts: contactLimit,
     };
 
-    // Add warning logic using the updated functions
-    if (shouldWarnSupplier(user.contactCount || 0, contactLimit)) {
+    // Contact limit warning - only show when contacts are near limit
+    const contactWarningThreshold = Math.floor(contactLimit * 0.8);
+    if (
+      user.contactCount >= contactWarningThreshold &&
+      user.contactCount < contactLimit
+    ) {
       stats.hasWarning = true;
+      stats.warnings.push("near-limit");
       stats.warningType = "near-limit";
     }
-    if (stats.daysUntilExpiry < 7) {
+
+    // Subscription expiry warning - only show in last 7 days AND if user has active contacts
+    if (subscription && stats.daysUntilExpiry < 7 && user.contactCount > 0) {
       stats.hasWarning = true;
-      stats.warningType = "expiring";
+      stats.warnings.push("expiring");
+      // Only set expiry warning if no contact limit warning
+      if (!stats.warningType) {
+        stats.warningType = "expiring";
+      }
     }
+
+    // Lock warning takes precedence
     if (stats.isLocked) {
       stats.hasWarning = true;
-      stats.warningType = "locked";
+      stats.warnings.push("locked");
+      stats.warningType = "locked"; // Locked state overrides other warnings
     }
 
     res.json({
-      subscription: {
-        _id: subscription._id,
-        status: subscription.status,
-        plan: subscription.plan,
-        startDate: subscription.startDate,
-        endDate: subscription.endDate,
-        contactLimit: contactLimit,
-        contactsUsed: user.contactCount || 0,
-      },
+      subscription: subscription
+        ? {
+            _id: subscription._id,
+            status: subscription.status,
+            plan: subscription.plan,
+            startDate: subscription.startDate,
+            endDate: subscription.endDate,
+            contactLimit: contactLimit,
+            contactsUsed: user.contactCount || 0,
+          }
+        : null,
       stats,
     });
   } catch (error) {
+    console.error("Subscription status error:", error);
     res.status(500).json({ message: "Failed to get subscription status" });
   }
 };
-
 exports.cancelSubscription = async (req, res) => {
   try {
     const subscription = await Subscription.findOne({
@@ -213,54 +290,54 @@ exports.getCurrentSubscription = async (req, res) => {
   }
 };
 
-exports.getSubscriptionStats = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    const subscription = await Subscription.findOne({
-      supplier: req.user.id,
-      status: "active",
-    });
+// exports.getSubscriptionStats = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user.id);
+//     const subscription = await Subscription.findOne({
+//       supplier: req.user.id,
+//       status: "active",
+//     });
 
-    const plan = subscription?.plan || "basic";
-    const contactLimit =
-      SUBSCRIPTION_PLANS[plan.toUpperCase()]?.contactLimit || 50;
-    const usagePercentage = ((user.contactCount || 0) / contactLimit) * 100;
-    const daysUntilExpiry = subscription
-      ? Math.ceil(
-          (new Date(subscription.endDate) - new Date()) / (1000 * 60 * 60 * 24)
-        )
-      : 0;
+//     const plan = subscription?.plan || "basic";
+//     const contactLimit =
+//       SUBSCRIPTION_PLANS[plan.toUpperCase()]?.contactLimit || 50;
+//     const usagePercentage = ((user.contactCount || 0) / contactLimit) * 100;
+//     const daysUntilExpiry = subscription
+//       ? Math.ceil(
+//           (new Date(subscription.endDate) - new Date()) / (1000 * 60 * 60 * 24)
+//         )
+//       : 0;
 
-    const stats = {
-      isLocked: user.isLocked,
-      lockReason: user.lockReason,
-      lockExpiryDate: user.lockExpiryDate,
-      usagePercentage,
-      daysUntilExpiry,
-      hasWarning: false,
-      warningType: undefined,
-      currentContacts: user.contactCount || 0,
-      maxContacts: contactLimit,
-    };
+//     const stats = {
+//       isLocked: user.isLocked,
+//       lockReason: user.lockReason,
+//       lockExpiryDate: user.lockExpiryDate,
+//       usagePercentage,
+//       daysUntilExpiry,
+//       hasWarning: false,
+//       warningType: undefined,
+//       currentContacts: user.contactCount || 0,
+//       maxContacts: contactLimit,
+//     };
 
-    // Set warning type using updated logic
-    if (user.isLocked) {
-      stats.hasWarning = true;
-      stats.warningType = "locked";
-    } else if (shouldWarnSupplier(user.contactCount || 0, contactLimit)) {
-      stats.hasWarning = true;
-      stats.warningType = "near-limit";
-    } else if (daysUntilExpiry < 7) {
-      stats.hasWarning = true;
-      stats.warningType = "expiring";
-    }
+//     // Set warning type using updated logic
+//     if (user.isLocked) {
+//       stats.hasWarning = true;
+//       stats.warningType = "locked";
+//     } else if (shouldWarnSupplier(user.contactCount || 0, contactLimit)) {
+//       stats.hasWarning = true;
+//       stats.warningType = "near-limit";
+//     } else if (daysUntilExpiry < 7) {
+//       stats.hasWarning = true;
+//       stats.warningType = "expiring";
+//     }
 
-    res.json(stats);
-  } catch (error) {
-    console.error("Stats error:", error);
-    res.status(500).json({ message: "Failed to get subscription stats" });
-  }
-};
+//     res.json(stats);
+//   } catch (error) {
+//     console.error("Stats error:", error);
+//     res.status(500).json({ message: "Failed to get subscription stats" });
+//   }
+// };
 
 exports.renewSubscription = async (req, res) => {
   try {
