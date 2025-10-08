@@ -5,6 +5,7 @@ const {
   standardizeJordanPhone,
   standardizeKuwaitPhone,
   standardizePhoneByCountry,
+  standardizePhoneAuto,
 } = require("../utils/phoneUtils");
 
 const userSchema = new mongoose.Schema(
@@ -20,8 +21,17 @@ const userSchema = new mongoose.Schema(
       unique: true,
       validate: {
         validator: function (phone) {
-          // Check if it's a valid Jordan or Kuwait phone number
-          return isValidJordanPhone(phone) || isValidKuwaitPhone(phone);
+          // Use the same auto-standardization logic the controllers use.
+          // If standardization succeeds and the number validates as Jordan or Kuwait, accept it.
+          try {
+            const standardized = standardizePhoneAuto(phone);
+            return (
+              isValidJordanPhone(standardized) ||
+              isValidKuwaitPhone(standardized)
+            );
+          } catch (err) {
+            return false;
+          }
         },
         message: (props) =>
           `${props.value} is not a valid Jordan or Kuwait phone number!`,

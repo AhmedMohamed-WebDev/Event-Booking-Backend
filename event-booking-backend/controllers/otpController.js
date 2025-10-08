@@ -85,9 +85,16 @@ exports.verifyOtp = async (req, res) => {
     let user = await User.findOne({ phone: standardizedPhone });
 
     if (!user) {
+      // Determine country explicitly from standardized phone to satisfy
+      // mongoose validation and pre-save formatting in the User model.
+      const country = standardizedPhone.startsWith("+965")
+        ? "kuwait"
+        : "jordan";
+
       user = await User.create({
         name: name || stored.name,
         phone: standardizedPhone,
+        country,
         role: "client",
       });
     }

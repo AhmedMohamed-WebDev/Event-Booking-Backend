@@ -3,13 +3,21 @@ const standardizePhone = (phone, countryCode, pattern, errorMessage) => {
   let cleaned = phone.replace(/[\s\-\(\)]/g, "");
 
   // Remove '+' if present
+  // Remove '+' or international '00' prefix if present
   if (cleaned.startsWith("+")) {
     cleaned = cleaned.substring(1);
+  } else if (cleaned.startsWith("00")) {
+    // treat 00 as international prefix like +
+    cleaned = cleaned.substring(2);
   }
 
   // Handle different formats
   if (cleaned.startsWith(countryCode)) {
     cleaned = cleaned.substring(countryCode.length);
+    // If user included a trunk '0' after the country code (e.g. 00962 07...), remove it
+    if (cleaned.startsWith("0")) {
+      cleaned = cleaned.substring(1);
+    }
   } else if (cleaned.startsWith("0")) {
     cleaned = cleaned.substring(1);
   }
@@ -108,17 +116,21 @@ exports.standardizePhoneAuto = (phone) => {
     // Remove all non-digit characters first
     let cleaned = phone.replace(/[\s\-\(\)]/g, "");
 
-    // Check if it's a Kuwait number (starts with +965, 965, or 9)
-    if (cleaned.startsWith("+965") || cleaned.startsWith("965")) {
+    // Normalize leading international prefixes: + or 00
+    if (cleaned.startsWith("+")) cleaned = cleaned.substring(1);
+    if (cleaned.startsWith("00")) cleaned = cleaned.substring(2);
+
+    // Check if it's a Kuwait number (starts with 965, or local 8-digit starting with 9)
+    if (
+      cleaned.startsWith("965") ||
+      (cleaned.startsWith("9") && cleaned.length === 8)
+    ) {
       return exports.standardizeKuwaitPhone(phone);
-    } else if (cleaned.startsWith("9") && cleaned.length === 8) {
-      // This is likely a Kuwait number (8 digits starting with 9)
-      return exports.standardizeKuwaitPhone(phone);
-    } else if (cleaned.startsWith("+962") || cleaned.startsWith("962")) {
-      // Jordan number with country code
-      return exports.standardizeJordanPhone(phone);
-    } else if (cleaned.startsWith("7") && cleaned.length === 9) {
-      // This is likely a Jordan number (9 digits starting with 7)
+    } else if (
+      cleaned.startsWith("962") ||
+      (cleaned.startsWith("7") && cleaned.length === 9)
+    ) {
+      // Jordan number with country code or local 9-digit starting with 7
       return exports.standardizeJordanPhone(phone);
     } else {
       // Try Jordan first, if it fails, try Kuwait
