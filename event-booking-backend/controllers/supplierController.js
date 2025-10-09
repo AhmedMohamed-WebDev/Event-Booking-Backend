@@ -45,15 +45,30 @@ exports.getSupplierDashboard = async (req, res) => {
         .populate("client", "name phone")
         .sort({ createdAt: -1 });
 
+      const total = bookings.length;
+      const pending = bookings.filter((b) => b.status === "pending").length;
+      const confirmed = bookings.filter((b) => b.status === "confirmed").length;
+      const cancelled = bookings.filter((b) => b.status === "cancelled").length;
+      const revenue = bookings
+        .filter((b) => b.status === "confirmed")
+        .reduce((acc, curr) => acc + (curr.paidAmount || 0), 0);
+
+      // Keep the existing bookingStats object for backward compatibility
       response.supplier.bookingStats = {
-        total: bookings.length,
-        pending: bookings.filter((b) => b.status === "pending").length,
-        confirmed: bookings.filter((b) => b.status === "confirmed").length,
-        cancelled: bookings.filter((b) => b.status === "cancelled").length,
-        revenue: bookings
-          .filter((b) => b.status === "confirmed")
-          .reduce((acc, curr) => acc + (curr.paidAmount || 0), 0),
+        total,
+        pending,
+        confirmed,
+        cancelled,
+        revenue,
       };
+
+      // Also add flattened fields that the frontend component expects
+      response.supplier.totalBookings = total;
+      response.supplier.pendingBookings = pending;
+      response.supplier.confirmedBookings = confirmed;
+      response.supplier.cancelledBookings = cancelled;
+      response.supplier.totalRevenue = revenue;
+
       response.bookings = bookings;
     }
 
