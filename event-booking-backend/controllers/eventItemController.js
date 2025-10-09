@@ -46,9 +46,36 @@ exports.getEventItemById = async (req, res) => {
 
 exports.updateEventItem = async (req, res) => {
   try {
-    const item = await EventItem.findByIdAndUpdate(req.params.id, req.body, {
+    // Sanitize incoming data similar to create
+    const itemData = { ...req.body };
+
+    if (itemData.availability) {
+      if (itemData.availability.dateRange) {
+        if (itemData.availability.dateRange.from)
+          itemData.availability.dateRange.from = new Date(
+            itemData.availability.dateRange.from
+          );
+        if (itemData.availability.dateRange.to)
+          itemData.availability.dateRange.to = new Date(
+            itemData.availability.dateRange.to
+          );
+      }
+
+      if (Array.isArray(itemData.availability.excludedDates)) {
+        itemData.availability.excludedDates =
+          itemData.availability.excludedDates.map((d) => new Date(d));
+      }
+    }
+
+    // If client sends legacy availableDates, coerce them to Date objects
+    if (Array.isArray(itemData.availableDates)) {
+      itemData.availableDates = itemData.availableDates.map((d) => new Date(d));
+    }
+
+    const item = await EventItem.findByIdAndUpdate(req.params.id, itemData, {
       new: true,
     });
+
     res.json(item);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -218,18 +245,23 @@ exports.createEventItem = async (req, res) => {
     const itemData = { ...req.body, supplier: req.user.id };
 
     // Ensure dates are properly formatted
-    if (itemData.availability?.dateRange) {
-      itemData.availability.dateRange.from = new Date(
-        itemData.availability.dateRange.from
-      );
-      itemData.availability.dateRange.to = new Date(
-        itemData.availability.dateRange.to
-      );
-    }
+    if (itemData.availability) {
+      if (itemData.availability.dateRange) {
+        // Only coerce when values are present
+        if (itemData.availability.dateRange.from)
+          itemData.availability.dateRange.from = new Date(
+            itemData.availability.dateRange.from
+          );
+        if (itemData.availability.dateRange.to)
+          itemData.availability.dateRange.to = new Date(
+            itemData.availability.dateRange.to
+          );
+      }
 
-    if (itemData.availability?.excludedDates) {
-      itemData.availability.excludedDates =
-        itemData.availability.excludedDates.map((date) => new Date(date));
+      if (Array.isArray(itemData.availability.excludedDates)) {
+        itemData.availability.excludedDates =
+          itemData.availability.excludedDates.map((date) => new Date(date));
+      }
     }
 
     const item = await EventItem.create(itemData);

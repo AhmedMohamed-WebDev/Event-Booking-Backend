@@ -48,7 +48,8 @@ eventItemSchema.methods.isDateAvailable = function (date) {
     !this.availability?.dateRange?.from ||
     !this.availability?.dateRange?.to
   ) {
-    return this.availableDates.some(
+    const arr = Array.isArray(this.availableDates) ? this.availableDates : [];
+    return arr.some(
       (d) => new Date(d).toDateString() === checkDate.toDateString()
     );
   }

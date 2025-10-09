@@ -23,10 +23,39 @@ exports.createBooking = async (req, res) => {
     }
 
     // Step 1: Validate eventDate is available
-    const requestedDate = new Date(eventDate).toISOString();
-    const available = item.availableDates.some(
-      (d) => new Date(d).toISOString() === requestedDate
-    );
+    const requestedDateObj = new Date(eventDate);
+
+    // Prefer the model helper which understands both the new `availability`
+    // shape (dateRange + excludedDates) and the legacy `availableDates`.
+    let available = false;
+    try {
+      if (typeof item.isDateAvailable === "function") {
+        available = item.isDateAvailable(requestedDateObj);
+      } else {
+        // Defensive fallback when method is not present (older document shape)
+        const requestedISO = requestedDateObj.toISOString();
+        available = (item.availableDates || []).some(
+          (d) => new Date(d).toISOString() === requestedISO
+        );
+
+        // If still not available, check the availability.dateRange form
+        if (!available && item.availability && item.availability.dateRange) {
+          const from = new Date(item.availability.dateRange.from);
+          const to = new Date(item.availability.dateRange.to);
+          if (requestedDateObj >= from && requestedDateObj <= to) {
+            const excluded = item.availability.excludedDates || [];
+            available = !excluded.some(
+              (ex) =>
+                new Date(ex).toDateString() === requestedDateObj.toDateString()
+            );
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error checking availability:", err);
+      available = false;
+    }
+
     if (!available) {
       return res
         .status(400)
