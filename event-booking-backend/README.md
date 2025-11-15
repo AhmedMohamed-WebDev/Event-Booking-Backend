@@ -16,11 +16,13 @@ This project is an Event Booking Backend application built with Node.js and Expr
 ## Installation
 
 1. Clone the repository:
+
    ```
    git clone <repository-url>
    ```
 
 2. Navigate to the project directory:
+
    ```
    cd event-booking-backend
    ```
@@ -35,6 +37,7 @@ This project is an Event Booking Backend application built with Node.js and Expr
 1. Create a `.env` file in the root directory and add your environment variables (see [Environment Variables](#environment-variables) section).
 
 2. Start the server:
+
    ```
    npm start
    ```
@@ -44,6 +47,7 @@ This project is an Event Booking Backend application built with Node.js and Expr
 ## API Endpoints
 
 - **Authentication**
+
   - `POST /api/auth/login` - Login a user
   - `POST /api/auth/register` - Register a new user
 
@@ -53,7 +57,21 @@ This project is an Event Booking Backend application built with Node.js and Expr
   - `PUT /api/events/:id` - Update an event
   - `DELETE /api/events/:id` - Delete an event
 
+### Notes: Subcategories support
+
+- New field: `subcategories` (array of strings) is now supported on `EventItem` documents. This allows a single event to belong to multiple service subcategories.
+- Backward compatibility: the legacy `subcategory` (string) is preserved during the migration window. The API will accept either `subcategory` (string) or `subcategories` (array or comma-separated string) when creating/updating events. When `subcategories` is present and `subcategory` is not, the server will set `subcategory` to the first value in the array for compatibility.
+- Search: The `GET /api/events` endpoint accepts a `subcategory` query parameter which can be a single value or a comma-separated list (e.g. `?subcategory=wedding-halls,venues`). The server will return items matching any of the requested subcategories in either the legacy `subcategory` field or the new `subcategories` array.
+- Migration: A simple migration script is included at `scripts/migrate-subcategories.js` to copy existing `subcategory` string values into `subcategories` arrays. Run it once after taking a backup:
+
+```
+node scripts/migrate-subcategories.js
+```
+
+Make sure your `MONGO_URI` / database connection is available via environment or config before running the migration.
+
 - **Bookings**
+
   - `GET /api/bookings` - Get all bookings
   - `POST /api/bookings` - Create a new booking
 
@@ -64,6 +82,7 @@ This project is an Event Booking Backend application built with Node.js and Expr
 ## Testing
 
 To run the tests, use the following command:
+
 ```
 npm test
 ```

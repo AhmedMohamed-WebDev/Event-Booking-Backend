@@ -72,6 +72,61 @@ exports.updateEventItem = async (req, res) => {
       itemData.availableDates = itemData.availableDates.map((d) => new Date(d));
     }
 
+    // Normalize subcategories on update: accept array or comma-separated string
+    if (itemData.subcategories && !Array.isArray(itemData.subcategories)) {
+      itemData.subcategories = String(itemData.subcategories)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+
+    // Normalize social links
+    if (itemData.social && typeof itemData.social === "object") {
+      itemData.social = {
+        instagram: itemData.social.instagram
+          ? String(itemData.social.instagram).trim()
+          : undefined,
+        facebook: itemData.social.facebook
+          ? String(itemData.social.facebook).trim()
+          : undefined,
+      };
+    }
+
+    // Preserve legacy single subcategory for compatibility if not explicitly provided
+    if (
+      !itemData.subcategory &&
+      Array.isArray(itemData.subcategories) &&
+      itemData.subcategories.length > 0
+    ) {
+      itemData.subcategory = itemData.subcategories[0];
+    }
+
+    // Normalize price handling: allow missing price for contact-only services
+    if (
+      itemData.price === undefined ||
+      itemData.price === null ||
+      itemData.price === ""
+    ) {
+      itemData.price = undefined;
+      itemData.priceType = itemData.priceType || "not_provided";
+      itemData.priceAvailable = false;
+    } else {
+      // ensure numeric
+      itemData.price = Number(itemData.price);
+      itemData.priceAvailable = true;
+    }
+
+    // Derive priceAvailable: false when price is null/undefined or explicitly not_provided
+    if (itemData.price === undefined || itemData.price === null) {
+      // If priceType provided and set to not_provided, respect it; otherwise default to not_provided
+      itemData.priceType = itemData.priceType || "not_provided";
+      itemData.priceAvailable = false;
+    } else {
+      itemData.priceAvailable = true;
+      // If supplier marked as free explicitly
+      if (itemData.priceType === "free") itemData.price = 0;
+    }
+
     const item = await EventItem.findByIdAndUpdate(req.params.id, itemData, {
       new: true,
     });
@@ -192,7 +247,22 @@ exports.searchEventItems = async (req, res) => {
     if (city) query["location.city"] = city;
     if (area) query["location.area"] = area;
     if (category) query.category = category;
-    if (subcategory) query.subcategory = subcategory;
+    // Support querying by subcategory name or by multiple subcategories.
+    // `subcategory` query may be a single value or comma-separated list.
+    if (subcategory) {
+      const subs = Array.isArray(subcategory)
+        ? subcategory
+        : String(subcategory)
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+      // Match documents where any of the stored `subcategories` contains one of the requested values
+      // or where legacy `subcategory` equals one of the requested values.
+      query.$or = [
+        { subcategories: { $in: subs } },
+        { subcategory: { $in: subs } },
+      ];
+    }
 
     if (people) {
       const count = parseInt(people);
@@ -264,6 +334,35 @@ exports.createEventItem = async (req, res) => {
       }
     }
 
+    // Normalize subcategories: accept array or comma-separated string
+    if (itemData.subcategories && !Array.isArray(itemData.subcategories)) {
+      itemData.subcategories = String(itemData.subcategories)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+
+    // Allow optional social links
+    if (itemData.social && typeof itemData.social === "object") {
+      itemData.social = {
+        instagram: itemData.social.instagram
+          ? String(itemData.social.instagram).trim()
+          : undefined,
+        facebook: itemData.social.facebook
+          ? String(itemData.social.facebook).trim()
+          : undefined,
+      };
+    }
+
+    // Preserve legacy single subcategory for compatibility if not explicitly provided
+    if (
+      !itemData.subcategory &&
+      Array.isArray(itemData.subcategories) &&
+      itemData.subcategories.length > 0
+    ) {
+      itemData.subcategory = itemData.subcategories[0];
+    }
+
     const item = await EventItem.create(itemData);
     res.status(201).json(item);
   } catch (err) {
@@ -278,7 +377,18 @@ exports.subFilterEventItems = async (req, res) => {
     const query = {};
 
     if (category) query.category = category;
-    if (subcategory) query.subcategory = subcategory;
+    if (subcategory) {
+      const subs = Array.isArray(subcategory)
+        ? subcategory
+        : String(subcategory)
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+      query.$or = [
+        { subcategories: { $in: subs } },
+        { subcategory: { $in: subs } },
+      ];
+    }
 
     const results = await EventItem.find(query).populate(
       "supplier",

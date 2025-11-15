@@ -8,10 +8,25 @@ const eventItemSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // New: support multiple subcategories for a single event item.
+    // Keep legacy `subcategory` (string) for backward compatibility during migration.
     subcategory: {
       type: String,
     },
-    price: { type: Number, required: true },
+    subcategories: {
+      type: [String],
+      default: undefined,
+    },
+    // price is optional: suppliers may choose not to provide a price
+    price: { type: Number, required: false },
+    // priceType clarifies meaning of price when present or absent
+    priceType: {
+      type: String,
+      enum: ["fixed", "from", "negotiable", "free", "not_provided"],
+      default: "fixed",
+    },
+    // convenience flag for consumers
+    priceAvailable: { type: Boolean, default: true },
     location: {
       city: String,
       area: String,
@@ -37,6 +52,11 @@ const eventItemSchema = new mongoose.Schema(
     },
     minCapacity: Number,
     maxCapacity: Number,
+    // Optional social links provided by supplier for this service
+    social: {
+      instagram: String,
+      facebook: String,
+    },
   },
   { timestamps: true }
 );

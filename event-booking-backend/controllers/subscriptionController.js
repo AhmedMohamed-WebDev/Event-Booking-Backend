@@ -10,6 +10,19 @@ const sendWhatsAppNotification = require("../utils/whatsapp");
 const notifications = require("../utils/notifications");
 const { addDays } = require("date-fns");
 
+// Defensive helper available to all functions in this module. Some deployments
+// may have an incorrect value for the model (not a Mongoose model), so guard
+// against calling model methods directly in those environments.
+const safeFindOne = async (model, filter = {}) => {
+  try {
+    if (!model || typeof model.findOne !== "function") return null;
+    return await model.findOne(filter);
+  } catch (e) {
+    console.warn("safeFindOne failed:", e);
+    return null;
+  }
+};
+
 exports.createSubscription = async (req, res) => {
   try {
     const { plan } = req.body;
@@ -118,7 +131,18 @@ exports.createSubscription = async (req, res) => {
 // Remove the old versions and keep only this one
 exports.getSubscriptionStats = async (req, res) => {
   try {
-    const subscription = await Subscription.findOne({
+    // Defensive helper: safeFindOne ensures we don't call .findOne on a non-model
+    const safeFindOne = async (model, filter = {}) => {
+      try {
+        if (!model || typeof model.findOne !== "function") return null;
+        return await model.findOne(filter);
+      } catch (e) {
+        console.warn("safeFindOne failed:", e);
+        return null;
+      }
+    };
+
+    const subscription = await safeFindOne(Subscription, {
       supplier: req.user.id,
       status: "active",
     });
@@ -194,7 +218,7 @@ exports.getSubscriptionStats = async (req, res) => {
 };
 exports.cancelSubscription = async (req, res) => {
   try {
-    const subscription = await Subscription.findOne({
+    const subscription = await safeFindOne(Subscription, {
       supplier: req.user.id,
       status: "active",
     });
@@ -220,7 +244,7 @@ exports.cancelSubscription = async (req, res) => {
 
 exports.getCurrentSubscription = async (req, res) => {
   try {
-    const subscription = await Subscription.findOne({
+    const subscription = await safeFindOne(Subscription, {
       supplier: req.user.id,
       status: "active",
     });
@@ -343,10 +367,6 @@ exports.renewSubscription = async (req, res) => {
   try {
     const { planType } = req.body;
     const user = await User.findById(req.user.id);
-    const currentSubscription = await Subscription.findOne({
-      supplier: req.user.id,
-      status: "active",
-    });
 
     // Validate plan
     if (!planType || !["basic", "premium", "enterprise"].includes(planType)) {
@@ -356,6 +376,11 @@ exports.renewSubscription = async (req, res) => {
     }
 
     // Create new subscription with the requested plan
+    const currentSubscription = await safeFindOne(Subscription, {
+      supplier: req.user.id,
+      status: "active",
+    });
+
     const newSubscription = new Subscription({
       supplier: req.user.id,
       plan: planType,
@@ -413,7 +438,7 @@ exports.renewSubscription = async (req, res) => {
 
 exports.toggleAutoRenew = async (req, res) => {
   try {
-    const subscription = await Subscription.findOne({
+    const subscription = await safeFindOne(Subscription, {
       supplier: req.user.id,
       status: "active",
     });

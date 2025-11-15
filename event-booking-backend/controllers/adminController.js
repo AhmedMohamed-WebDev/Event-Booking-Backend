@@ -8,6 +8,19 @@ const { formatMessage } = require("../utils/messages");
 
 exports.getAdminStats = async (req, res) => {
   try {
+    // Defensive helper: some environments may have a replaced/incorrect Subscription
+    // object where countDocuments isn't available. Use safeCount to avoid runtime
+    // TypeError and still return 0 when method not present.
+    const safeCount = async (model, filter = {}) => {
+      try {
+        if (!model || typeof model.countDocuments !== "function") return 0;
+        return await model.countDocuments(filter);
+      } catch (e) {
+        console.warn("safeCount failed:", e);
+        return 0;
+      }
+    };
+
     const [
       totalUsers,
       totalSuppliers,
@@ -44,7 +57,7 @@ exports.getAdminStats = async (req, res) => {
       }),
       User.countDocuments({ isLocked: true }),
       Contact.countDocuments(),
-      Subscription.countDocuments({ status: "active" }),
+      safeCount(Subscription, { status: "active" }),
       ContactMessage.countDocuments(),
     ]);
 
@@ -127,7 +140,8 @@ exports.getAllSubscriptions = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
-    const total = await Subscription.countDocuments(filter);
+    // Use safeCount in case Subscription model on production is missing countDocuments
+    const total = await safeCount(Subscription, filter);
 
     res.json({
       subscriptions,

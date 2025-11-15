@@ -21,6 +21,18 @@ const contactRequestSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // origin of the contact request (e.g. 'instagram', 'facebook', 'direct')
+    via: {
+      type: String,
+    },
+    // Optional quoted price provided by supplier in response to the contact request
+    quotedPrice: {
+      amount: { type: Number },
+      currency: { type: String },
+      priceType: { type: String },
+    },
+    // If the requester converted this contact request into a booking
+    convertedToBooking: { type: Boolean, default: false },
     status: {
       type: String,
       enum: ["pending", "accepted", "rejected"],

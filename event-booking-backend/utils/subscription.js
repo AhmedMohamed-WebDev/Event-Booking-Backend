@@ -23,6 +23,11 @@ function isContactOnlyCategory(category, subcategory = null) {
     return true;
   }
 
+  // Accept subcategory as string or array
+  if (Array.isArray(subcategory)) {
+    return subcategory.some((s) => CONTACT_ONLY_SUBCATEGORIES.includes(s));
+  }
+
   // Check if the specific subcategory is contact-only
   if (subcategory && CONTACT_ONLY_SUBCATEGORIES.includes(subcategory)) {
     return true;

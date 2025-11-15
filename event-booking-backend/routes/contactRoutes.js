@@ -8,6 +8,7 @@ const {
   getClientContactRequests,
   getContactLimitInfo,
   updateContactRequestStatus,
+  convertContactRequest,
   checkContactRequestStatus,
 } = require("../controllers/contactController");
 
@@ -24,6 +25,11 @@ router.patch(
   "/requests/:requestId",
   authMiddleware,
   updateContactRequestStatus
+);
+router.post(
+  "/requests/:requestId/convert",
+  authMiddleware,
+  convertContactRequest
 );
 
 module.exports = router;

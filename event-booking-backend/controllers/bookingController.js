@@ -22,6 +22,60 @@ exports.createBooking = async (req, res) => {
       });
     }
 
+    // Prevent booking when supplier didn't provide a price (contact-only)
+    let usedPrice = item.price;
+    let usedCurrency = item.priceCurrency || "JOD";
+
+    if (
+      item.priceAvailable === false ||
+      item.price === undefined ||
+      item.price === null ||
+      item.priceType === "not_provided"
+    ) {
+      // Allow conversion to booking if the client provided a contactRequestId and
+      // the supplier has quoted a price for that request which hasn't been converted yet
+      const { contactRequestId } = req.body;
+      if (!contactRequestId) {
+        return res.status(403).json({
+          message:
+            formatMessage("booking.error.priceNotAvailable", req.lang) ||
+            "Price not available for this service. Please contact the supplier.",
+        });
+      }
+
+      // Validate contact request
+      const ContactRequest = require("../models/ContactRequest");
+      const cr = await ContactRequest.findById(contactRequestId);
+      if (!cr) {
+        return res.status(404).json({ message: "Contact request not found" });
+      }
+
+      if (cr.service.toString() !== item._id.toString()) {
+        return res
+          .status(400)
+          .json({ message: "Contact request does not match service" });
+      }
+
+      if (!cr.quotedPrice || !cr.quotedPrice.amount) {
+        return res
+          .status(400)
+          .json({ message: "No quoted price available on request" });
+      }
+
+      if (cr.convertedToBooking) {
+        return res
+          .status(400)
+          .json({ message: "Contact request already converted to booking" });
+      }
+
+      // Use quoted price for booking
+      usedPrice = cr.quotedPrice.amount;
+      usedCurrency = cr.quotedPrice.currency || usedCurrency;
+
+      // We'll mark contact request converted after booking is created successfully
+      var markConvertedRequest = cr;
+    }
+
     // Step 1: Validate eventDate is available
     const requestedDateObj = new Date(eventDate);
 
@@ -72,7 +126,7 @@ exports.createBooking = async (req, res) => {
     }
 
     // Step 3: Booking creation
-    const totalPrice = item.price;
+    const totalPrice = usedPrice || 0;
     const paidAmount = totalPrice * 0.1;
 
     const booking = await Booking.create({
@@ -82,6 +136,7 @@ exports.createBooking = async (req, res) => {
       numberOfPeople,
       totalPrice,
       paidAmount,
+      currency: usedCurrency,
     });
 
     // Step 4: Booking limit and notifications
@@ -110,6 +165,16 @@ exports.createBooking = async (req, res) => {
       message: "Booking created successfully",
       booking,
     });
+
+    // Mark contact request as converted if applicable
+    if (markConvertedRequest) {
+      try {
+        markConvertedRequest.convertedToBooking = true;
+        await markConvertedRequest.save();
+      } catch (e) {
+        console.error("Failed to mark contact request converted:", e.message);
+      }
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong" });
